@@ -1,6 +1,8 @@
 TODO:
-- add to git
 - make build system
 - mover term to it's own library
 - scrolling in terminal
 - itoa
+
+DONE:
+2020/02/03 - add to git
