@@ -1,8 +1,8 @@
 TODO:
-- make build system
-- mover term to it's own library
+- move term to it's own library
 - scrolling in terminal
 - itoa
 
 DONE:
-2020/02/03 - add to git
+2020/02/03 - krowe - add to git
+2020/11/19 - krowe - make build system
