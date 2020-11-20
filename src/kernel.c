@@ -17,7 +17,11 @@ const int VGA_COLS = 80;
 const int VGA_ROWS = 25;
 const uint8_t TERM_COLOR_BASE = 0x0F; // Black background, white foreground
 
-#define VGA_IDX(col,row) ((VGA_COLS * row) + col)
+//#define VGA_IDX(row,col) ((row * VGA_COLS) + col)
+static size_t vga_idx(int row, int col)
+{
+  return (row * VGA_COLS) + col;
+}
 
 // We start displaying text in the top-left of the screen (column = 0, row = 0)
 int term_col = 0;
@@ -34,7 +38,7 @@ void term_init()
     {
       // The VGA textmode buffer has size (VGA_COLS * VGA_ROWS).
       // Given this, we find an index into the buffer for our character
-      const size_t index = VGA_IDX(col, row);
+      const size_t index = vga_idx(row, col);
       // Entries in the VGA buffer take the binary form BBBBFFFFCCCCCCCC, where:
       // - B is the background color
       // - F is the foreground color
@@ -54,7 +58,7 @@ void term_putc(char c)
     {
       for (int col = term_col; col < VGA_COLS; col++)
       {
-        const size_t index = VGA_IDX(col, term_row);
+        const size_t index = vga_idx(term_row, col);
         vga_buffer[index] = ((uint16_t)TERM_COLOR_BASE << 8) | ' ';
       }
       term_col = 0;
@@ -62,27 +66,70 @@ void term_putc(char c)
       break;
     }
 
+  case '\t': // Tab should be 4 spaces
+  {
+#define TAB_SPACE_CNT 4
+    if (term_col + TAB_SPACE_CNT >= VGA_COLS)
+    {
+      for (int col = term_col; col < VGA_COLS; col++)
+      {
+        const size_t index = vga_idx(term_row, col);
+        vga_buffer[index] = ((uint16_t)TERM_COLOR_BASE << 8) | ' ';
+      }
+      term_col = 0;
+      term_row++;
+    }
+    else
+    {
+      for (int col = term_col; col < term_col + TAB_SPACE_CNT; col++)
+      {
+          const size_t index = vga_idx(term_row, col);
+          vga_buffer[index] = ((uint16_t)TERM_COLOR_BASE << 8) | ' ';
+      }
+      term_col += TAB_SPACE_CNT;
+    }
+    break;
+  }
+
   default: // Normal characters just get displayed and then increment the column
     {
-      const size_t index = (VGA_COLS * term_row) + term_col; // Like before, calculate the buffer index
+      const size_t index = vga_idx(term_row, term_col);
       vga_buffer[index] = ((uint16_t)term_color << 8) | c;
       term_col++;
       break;
     }
   }
 
-  // What happens if we get past the last column? We need to reset the column to 0, and increment the row to get to a new line
+  // Went past last col, move to next row and reset col to start of row
   if (term_col >= VGA_COLS)
   {
     term_col = 0;
     term_row++;
   }
 
-  // What happens if we get past the last row? We need to reset both column and row to 0 in order to loop back to the top of the screen
+  // Went past last row, scroll up a row
   if (term_row >= VGA_ROWS)
   {
+    // Copy all rows up one
+    for (int row = 0; row < VGA_ROWS - 1; row++)
+    {
+      for (int col = 0; col < VGA_COLS; col++)
+      {
+        const size_t index_to   = vga_idx(row,     col);
+        const size_t index_from = vga_idx(row + 1, col);
+        vga_buffer[index_to] = vga_buffer[index_from];
+      }
+    }
+
+    // Clear the last row
+    for (int col = 0; col < VGA_COLS; col++)
+    {
+      const size_t index = vga_idx(VGA_ROWS - 1, col);
+      vga_buffer[index] = ((uint16_t)TERM_COLOR_BASE << 8) | ' ';
+    }
+
+    term_row = VGA_ROWS - 1;
     term_col = 0;
-    term_row = 0;
   }
 }
 
@@ -140,13 +187,30 @@ void term_print_color_test()
 // This is our kernel's main function
 void kernel_main()
 {
-  // We're here! Let's initiate the terminal and display a message to show we got here.
-
   // Initiate terminal
   term_init();
 
   // Display some messages
-  term_print("Hello, World!\n");
+  term_print("Hello, World 1\n");
+  term_print("Hello, World 2\n");
+  term_print("Hello, World 3\n");
+  term_print("Hello, World 4\n");
+  term_print("Hello, World 5\n");
+  term_print("Hello, World 6\n");
+  term_print("Hello, World 7\n");
+  term_print("Hello, World 8\n");
+  term_print("Hello, World 9\n");
+  term_print("Hello, World 10\n");
+  term_print("Hello, World 11\n");
+  term_print("Hello, World 12\n");
+  term_print("Hello, World 13\n");
+  term_print("Hello, World 14\n");
+  term_print("Hello, World 15\n");
+  term_print("Hello, World 16\n");
+  term_print("Hello, World 17\n");
+  term_print("Hello, World 18\n");
+  term_print("Hello, World 19\n");
+  term_print("Hello, World 20\n");
   term_print("Welcome to the kernel.\n");
 
   term_print_color_test();
@@ -156,10 +220,4 @@ void kernel_main()
   term_error("This is an error message\n");
   term_warning("This is a warning\n");
 
-  for (int i = 0; i < 20; i++)
-  {
-    term_print("Line ");
-    term_putc('0' + (i % 10));
-    term_print("\n");
-  }
 }
